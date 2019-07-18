@@ -1,0 +1,112 @@
+---
+title: "CleanMpas"
+author: "Braeden McNulty"
+date: "7/17/2019"
+output: html_document
+---
+
+#Required Packages
+
+```{r Packages}
+library(tidyverse)
+library(tidycensus)
+library(ggplot2)
+library(ggmap)
+library(viridis)
+library(kableExtra)
+library(caret)
+library(sf)
+library(here)
+library(dplyr)
+library(knitr)
+library(purrr)
+library(kableExtra)
+library(modelr)
+library(broom)
+library(rsample)
+library(magrittr)
+```
+
+#Required Packages
+
+```{r Packages}
+library(tidyverse)
+library(tidycensus)
+library(ggplot2)
+library(ggmap)
+library(viridis)
+library(kableExtra)
+library(caret)
+library(sf)
+library(here)
+library(dplyr)
+library(knitr)
+library(purrr)
+library(kableExtra)
+library(modelr)
+library(broom)
+library(rsample)
+library(magrittr)
+```
+
+#Some Maps
+
+```{r}
+as.data.frame(finalform)
+```
+
+```{r}
+finalform %>%
+  mutate(climate_cut = cut_number(human, n = 10)) %>%
+  ggplot() +
+  geom_sf(aes(fill = human, color = human)) +
+  scale_color_viridis(labels = scales::percent) +
+  scale_fill_viridis(labels = scales::percent) +
+  labs(title = "Climate Change Acceptance: Counties",
+       subtitle = "2018",
+       color = NULL,
+       fill = NULL,
+       caption = "Yale Center For Climate Change Communication")
+```
+
+```{r}
+finalform %>%
+  mutate(rural_cut = cut_number(ruralscore, n = 4)) %>% 
+  ggplot() +
+  geom_sf(aes(fill = rurallevel, color = rurallevel)) +
+  scale_color_viridis(labels = scales::percent) +
+  scale_fill_viridis(labels = scales::percent) +
+  labs(title = "Percent Rural: Counties",
+       subtitle = "2018",
+       color = NULL,
+       fill = NULL,
+       caption = "Census Decennial Survey")
+```
+
+```{r}
+finalform %>%
+  mutate(urban_cut = cut_number(urbanscore, n = 4)) %>% 
+  ggplot() +
+  geom_sf(aes(fill = urbanlevel, color = urbanlevel)) +
+  scale_color_viridis(labels = scales::percent) +
+  scale_fill_viridis(labels = scales::percent) +
+  labs(title = "Percent Rural: Counties",
+       subtitle = "2018",
+       color = NULL,
+       fill = NULL,
+       caption = "Census Decennial Survey")
+```
+
+```{r}
+finalform %>%
+  mutate(trump_cut = cut_number(trump_per, n = 6)) %>% 
+  ggplot() +
+  geom_sf(aes(fill = urbanlevel, color = urbanlevel)) +
+  scale_color_viridis(labels = scales::percent) +
+  scale_fill_viridis(labels = scales::percent) +
+  labs(title = "Percent Rural: Counties",
+       subtitle = "2018",
+       color = NULL,
+       fill = NULL,
+       caption = "MIT Election Lab")
+```

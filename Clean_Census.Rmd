@@ -1,0 +1,179 @@
+---
+title: "CleanCensus"
+author: "Braeden McNulty"
+date: "7/17/2019"
+output: html_document
+---
+
+```{r Packages}
+library(tidyverse)
+library(tidycensus)
+library(ggplot2)
+library(ggmap)
+library(viridis)
+library(kableExtra)
+library(caret)
+library(sf)
+library(here)
+library(dplyr)
+library(knitr)
+library(purrr)
+library(PerformanceAnalytics)
+library(ggcorrplot)
+```
+
+```{r}
+census_api_key("936f45de6fd4d24a8431316d386674f5b9990822")
+```
+
+```{r}
+census_white <- get_acs(geography = "county", 
+                    variables = c(pop_white = "DP05_0037PE"), 
+                    year = 2017)
+
+census_income <- get_acs(geography = "county", 
+                    variables = c(income = "B19013_001"), 
+                    year = 2017)
+
+census_grads <- get_acs(geography = "county", 
+                    variables = c(grads = "DP02_0064E"), 
+                    year = 2017
+                    geo = TRUE)
+```
+
+```{r}
+yale <- read_csv("Yale 2018 - Sheet1.csv")
+pop <- read.csv("ACS Data - Population(1).csv")
+geo <- read.csv("ACS Data - Geo.csv")
+trump <- read.csv("Presidential Elections - TrumpElect.csv")
+blsdata <- read.csv("County Unemployment Data - Sheet1.csv")
+```
+
+```{r}
+transform1 <- left_join(yale, pop, by = c("GeoName" = "county_name"))
+transform2 <- left_join(transform1, geo, by = c("GeoName" = "NAME"))
+transform3 <- left_join(transform2, trump, by = c("GeoName" = "elect_county"))
+transform4 <- left_join(census_white, transform3, by = c("NAME" = "GeoName"))
+transform5 <- left_join(census_income, transform4, by = c("NAME" = "NAME"))
+transform6 <- left_join(transform5, blsdata, by = c("NAME" = "bls_county"))
+```
+
+```{r}
+geolabs <- get_acs(geography = "county", 
+                    variables = c(totalpops = "B00001_001E"), 
+                    year = 2017,
+                    geometry = TRUE)
+```
+
+```{r}
+finalform <- left_join(geolabs, transform6, by = c("NAME" = "NAME"))
+
+as.data.frame(finalform)
+```
+
+```{r}
+finalform %>%
+   mutate(rural = cut(ruralscore, breaks = 5, labels = c("Low", "Medium Low", "Medium", "Medium High", "High"))) %>%
+  na.omit() %>%
+  ggplot(mapping = aes(x = rural, y = human))+
+  geom_boxplot() + 
+  theme_classic() + 
+  labs(x = "Precentage of Rural Land", y = "Belief in Climate Change")
+
+finalform %>%
+   mutate(rural = cut(ruralscore, breaks = 5, labels = c("Low", "Medium Low", "Medium", "Medium High", "High"))) %>%
+  na.omit() %>%
+  ggplot(mapping = aes(x = rural, y = harmUS))+
+  geom_boxplot() + 
+  theme_classic() + 
+  labs(x = "Precentage of Rural Land", y = "Belief Climate Change will Harm US")
+
+finalform %>%
+   mutate(rural = cut(ruralscore, breaks = 5, labels = c("Low", "Medium Low", "Medium", "Medium High", "High"))) %>%
+  na.omit() %>%
+  ggplot(mapping = aes(x = rural, y = supportRPS))+
+  geom_boxplot() + 
+  theme_classic() + 
+  labs(x = "Precentage of Rural Land", y = "Support for Renewable Energy Standards")
+
+finalform %>%
+   mutate(urban = cut(urbanscore, breaks = 5, labels = c("Low", "Medium Low", "Medium", "Medium High", "High"))) %>%
+  na.omit() %>%
+  ggplot(mapping = aes(x = urban, y = human))+
+  geom_boxplot() + 
+  theme_classic() + 
+  labs(x = "Precentage of Urban Land", y = "Belief in Climate Change")
+
+finalform %>%
+   mutate(urban = cut(urbanscore, breaks = 5, labels = c("Low", "Medium Low", "Medium", "Medium High", "High"))) %>%
+  na.omit() %>%
+  ggplot(mapping = aes(x = urban, y = harmUS))+
+  geom_boxplot() + 
+  theme_classic() + 
+  labs(x = "Precentage of Urban Land", y = "Belief Climate Change will Harm US")
+
+finalform %>%
+   mutate(urban = cut(urbanscore, breaks = 5, labels = c("Low", "Medium Low", "Medium", "Medium High", "High"))) %>%
+  na.omit() %>%
+  ggplot(mapping = aes(x = urban, y = supportRPS))+
+  geom_boxplot() + 
+  theme_classic() + 
+  labs(x = "Precentage of Urban Land", y = "Support for Renewable Energy Standards")
+```
+
+#Correlations
+
+```{r}
+corr <- finalform %>%
+  distinct(ruralscore, urbanscore, estimate.x, estimate.y, estimate, trump_per, human, harmUS, supportRPS)
+
+as.data.frame(corr)
+
+#chart.Correlation(corr[1:9])
+```
+
+```{r}
+fullmod <- lm(human ~ ruralscore + estimate.x + estimate.y + trump_per, data = finalform)
+summary(fullmod)
+
+econmod <- lm(human ~ unemp_rate + estimate.x, data = finalform)
+summary(econmod)
+
+educationmod <- lm(human ~ estimate, data = finalform)
+summary(educationmod)
+
+electionmod <- lm(human ~ trump_per + ruralscore + estimate.y, data = finalform)
+summary(electionmod)
+
+ruralmod <- lm(human ~ ruralscore, data = finalform)
+summary(ruralmod)
+
+urbanmod <- lm(human ~ urbanscore, data = finalform)
+summary(urbanmod)
+```
+
+```{r}
+ggplot(finalform, aes(ruralscore, group = NAME)) +
+  geom_line(aes(y = human), alpha = .2) +
+  geom_line(aes(y = .fitted), data = grid, color = "red", size = 1)
+
+ggplot(finalform, aes(ruralscore, group = NAME)) +
+  geom_line(aes(y = supportRPS), alpha = .2) +
+  geom_line(aes(y = .fitted), data = grid, color = "red", size = 1)
+
+ggplot(finalform, aes(urbanscore, group = NAME)) +
+  geom_line(aes(y = human), alpha = .2) +
+  geom_line(aes(y = .fitted), data = grid, color = "red", size = 1)
+
+ggplot(finalform, aes(urbanscore, group = NAME)) +
+  geom_line(aes(y = supportRPS), alpha = .2) +
+  geom_line(aes(y = .fitted), data = grid, color = "red", size = 1)
+```
+
+#ANOVA Tests
+
+```{r}
+finalfactors <- finalform %>%
+mutate(urban = cut(urbanscore, breaks = 5, labels = c("Low", "Medium Low", "Medium", "Medium High", "High"))) %>%
+  mutate(rural = cut(ruralscore breaks = 5, labels = c("Low", "Medium Low", "Medium", "Medium High", "High")))
+```
